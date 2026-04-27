@@ -2,39 +2,46 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>База данных</title>
+    <title>Монитор</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-<h2>Список пользователей</h2>
+<div class="container">
 
-<table class="db-table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Имя</th>
-            <th>Email</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>1</td>
-            <td>Иван</td>
-            <td>ivan@mail.com</td>
-        </tr>
-        <tr>
-            <td>2</td>
-            <td>Анна</td>
-            <td>anna@mail.com</td>
-        </tr>
-        <tr>
-            <td>3</td>
-            <td>Олег</td>
-            <td>oleg@mail.com</td>
-        </tr>
-    </tbody>
-</table>
+    <!-- Профиль -->
+    <div class="card">
+        <h2>Мой профиль</h2>
+        <p>Вы зашли как: <strong id="myinfo"></strong></p>
+
+        <div class="buttons">
+         <button class="btn green" onclick="changeStatus('📚 Учусь')">📚 Учусь</button>
+<button class="btn yellow" onclick="changeStatus('☕ Кофе')">☕ Кофе</button>
+<button class="btn blue" onclick="changeStatus('🎮 В игре')">🎮 В игре</button>
+<button class="btn gray" onclick="changeStatus('🏠 Дома')">🏠 Дома</button>
+        </div>
+    </div>
+
+    <!-- Группа -->
+    <div class="card">
+        <h2>Монитор группы</h2>
+
+        <div id="grouplist">
+            <div class="user-item">
+                <div class="status-dot" style="background: orange;"></div>
+                <div>
+                    <strong>Almas</strong><br>
+                    <span class="status-text">☕ Кофе-брейк</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
@@ -45,10 +52,10 @@ const supabase = createClient(URL, KEY);
 
 const MY_ID = 'dd055fc3-eafc-4c8e-8b01-a05283f0806e';
 
-window.changeStatus = async (text, color) => {
+window.changeStatus = async (text) => {
     const { error } = await supabase
         .from('profiles')
-        .update({ status: text, color: color })
+        .update({ status: text })
         .eq('id', MY_ID);
 
     if (error) {
@@ -70,7 +77,7 @@ async function fetchGroup() {
     const list = document.getElementById('grouplist');
     list.innerHTML = data.map(user => `
         <div class="user-item">
-            <div class="status-dot" style="background: ${user.color || '#ccc'}"></div>
+            <div class="status-dot"></div>
             <div style="flex-grow: 1">
                 <strong>${user.username}</strong><br>
                 <small style="color: #666;">${user.status || 'Статус не задан'}</small>
