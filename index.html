@@ -2,95 +2,112 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Монитор</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой профиль - Монитор</title>
     <style>
         body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f0f2f5;
+            padding-top: 50px;
         }
 
         .container {
-            width: 400px;
-            margin: 60px auto;
+            width: 100%;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         .card {
-            background: #fff;
-            padding: 20px;
+            background: white;
             border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 20px 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         h2 {
-            margin-top: 0;
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
         }
 
-        .buttons {
+        .info-text {
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .button-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            margin-top: 15px;
         }
 
         .btn {
-            padding: 12px;
             border: none;
             border-radius: 8px;
+            padding: 12px;
+            color: white;
             font-weight: bold;
+            font-size: 0.9rem;
             cursor: pointer;
-            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        .btn:hover {
-            opacity: 0.9;
-        }
-
-        .green { background: #28a745; color: white; }
-        .yellow { background: #f4b400; color: black; }
-        .blue { background: #17a2b8; color: white; }
-        .gray { background: #6c757d; color: white; }
+        .btn-green  { background-color: #28a745; }
+        .btn-yellow { background-color: #ffc107; color: #000; }
+        .btn-blue   { background-color: #17a2b8; }
+        .btn-gray   { background-color: #6c757d; }
 
         .user-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         .status-dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            background: #ccc;
+            margin-right: 15px;
         }
     </style>
 </head>
-
 <body>
 
 <div class="container">
-
     <div class="card">
         <h2>Мой профиль</h2>
-        <p id="myinfo">Загрузка...</p>
 
-        <div class="buttons">
-            <button class="btn green" onclick="changeStatus('📚 Учусь')">📚 Учусь</button>
-            <button class="btn yellow" onclick="changeStatus('☕ Кофе')">☕ Кофе</button>
-            <button class="btn blue" onclick="changeStatus('🎮 В игре')">🎮 В игре</button>
-            <button class="btn gray" onclick="changeStatus('🏠 Дома')">🏠 Дома</button>
+        <button onclick="loginWithGoogle()" class="btn btn-blue" style="margin-bottom:10px;">
+            🔐 Войти через Google
+        </button>
+
+        <div id="myInfo" class="info-text">Загрузка данных...</div>
+        
+        <div class="button-grid">
+            <button onclick="changeStatus('Учусь', '#28a745')" class="btn btn-green">📚 Учусь</button>
+            <button onclick="changeStatus('Кофе-брейк', '#ffc107')" class="btn btn-yellow">☕ Кофе</button>
+            <button onclick="changeStatus('В игре', '#17a2b8')" class="btn btn-blue">🎮 В игре</button>
+            <button onclick="changeStatus('Дома', '#6c757d')" class="btn btn-gray">🏠 Дома</button>
         </div>
     </div>
 
     <div class="card">
         <h2>Монитор группы</h2>
-        <div id="grouplist"></div>
+        <div id="groupList"></div>
     </div>
-
 </div>
 
 <script type="module">
@@ -102,46 +119,82 @@ const KEY = 'sb_publishable_MQ_xOc_YYqjaReI67vIoVA_vEyRmG7m';
 const supabase = createClient(URL, KEY);
 
 const MY_ID = 'dd055fc3-eafc-4c8e-8b01-a05283f0806e';
-
-window.changeStatus = async (text) => {
-    const { error } = await supabase
-        .from('profiles')
-        .update({ status: text })
-        .eq('id', MY_ID);
-
-    if (error) {
-        alert("Ошибка! Проверьте RLS политики в Supabase.");
-        console.error(error);
-    } else {
-        fetchGroup();
-    }
+// 🔐 ВХОД
+window.loginWithGoogle = async () => {
+    await supabase.auth.signInWithOAuth({
+        provider: 'google'
+    });
 };
 
+// 📥 ПОЛУЧЕНИЕ ПОЛЬЗОВАТЕЛЯ
+async function initUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        document.getElementById('myInfo').innerText = "Вы не вошли";
+        return;
+    }
+
+    MY_ID = user.id;
+
+    const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', MY_ID)
+        .single();
+
+    if (!data) {
+        await supabase.from('profiles').insert({
+            id: MY_ID,
+            username: user.user_metadata.full_name || "Без имени",
+            status: "Онлайн",
+            color: "#28a745"
+        });
+    }
+
+    fetchGroup();
+}
+
+// 🔄 СТАТУС
+window.changeStatus = async (text, color) => {
+    if (!MY_ID) return alert("Сначала войдите!");
+
+    await supabase
+        .from('profiles')
+        .update({ status: text, color: color })
+        .eq('id', MY_ID);
+
+    fetchGroup();
+};
+
+// 📊 СПИСОК
 async function fetchGroup() {
-    const { data, error } = await supabase
+    const { data } = await supabase
         .from('profiles')
         .select('*')
         .order('username', { ascending: true });
 
-    if (error) return console.error(error);
+    const list = document.getElementById('groupList');
 
-    const list = document.getElementById('grouplist');
     list.innerHTML = data.map(user => `
         <div class="user-item">
-            <div class="status-dot"></div>
-            <div style="flex-grow: 1">
+            <div class="status-dot" style="background:${user.color || '#ccc'}"></div>
+            <div>
                 <strong>${user.username}</strong><br>
-                <small style="color:#666;">${user.status || 'Статус не задан'}</small>
+                <small>${user.status || 'Статус не задан'}</small>
             </div>
         </div>
     `).join('');
 
     const me = data.find(u => u.id === MY_ID);
-    if (me) document.getElementById('myinfo').innerText = 'Вы: ' + me.username;
+    if (me) {
+        document.getElementById('myInfo').innerText = `Вы зашли как: ${me.username}`;
+    }
 }
 
-fetchGroup();
-setInterval(fetchGroup, 5000);
+// 🚀 ИНИТ
+initUser();
+setInterval(fetchGroup, 3000);
 </script>
 
 </body>
